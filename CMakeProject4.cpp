@@ -1,4 +1,4 @@
-﻿#include <iostream>
+﻿#include <iostream> 
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -11,22 +11,24 @@ using namespace std;
 struct Entrada {
     int id;
     string textoCifrado;
-    string clave;
 };
 
 // Funcion para cifrar usando Vigenere
 string cifrarVigenere(string texto, string clave) {
     string resultado = "";
-    int n = clave.length();
+    int n = static_cast<int>(clave.length());
+    int j = 0; // Variable para controlar el avance de la clave
     for (size_t i = 0; i < texto.length(); ++i) {
-        char letraTexto = toupper(texto[i]);
-        if (isalpha(letraTexto) && letraTexto != 'Ñ') {
-            char letraClave = toupper(clave[i % n]);
-            char cifrado = ((letraTexto - 'A') + (letraClave - 'A')) % 26 + 'A';
+        char letraTexto = texto[i];
+        if (isalpha(letraTexto)) {
+            char letraClave = toupper(clave[j % n]);
+            char base = isupper(letraTexto) ? 'A' : 'a';
+            char cifrado = ((letraTexto - base) + (toupper(letraClave) - 'A')) % 26 + base;
             resultado += cifrado;
+            j++; // Solo avanzar la clave si se cifró un carácter alfabético
         }
         else {
-            resultado += texto[i];
+            resultado += letraTexto;
         }
     }
     return resultado;
@@ -35,16 +37,19 @@ string cifrarVigenere(string texto, string clave) {
 // Funcion para descifrar usando Vigenere
 string descifrarVigenere(string textoCifrado, string clave) {
     string resultado = "";
-    int n = clave.length();
+    int n = static_cast<int>(clave.length());
+    int j = 0; // Variable para controlar el avance de la clave
     for (size_t i = 0; i < textoCifrado.length(); ++i) {
-        char letraTexto = toupper(textoCifrado[i]);
-        if (isalpha(letraTexto) && letraTexto != 'Ñ') {
-            char letraClave = toupper(clave[i % n]);
-            char descifrado = ((letraTexto - 'A') - (letraClave - 'A') + 26) % 26 + 'A';
+        char letraTexto = textoCifrado[i];
+        if (isalpha(letraTexto)) {
+            char letraClave = toupper(clave[j % n]);
+            char base = isupper(letraTexto) ? 'A' : 'a';
+            char descifrado = ((letraTexto - base) - (toupper(letraClave) - 'A') + 26) % 26 + base;
             resultado += descifrado;
+            j++; // Solo avanzar la clave si se descifró un carácter alfabético
         }
         else {
-            resultado += textoCifrado[i];
+            resultado += letraTexto;
         }
     }
     return resultado;
@@ -60,8 +65,7 @@ vector<Entrada> cargarEntradas(const string& nombreArchivo) {
             istringstream stream(linea);
             Entrada entrada;
             stream >> entrada.id;
-            getline(stream, entrada.textoCifrado, '|');
-            getline(stream, entrada.clave);
+            getline(stream, entrada.textoCifrado);
             entradas.push_back(entrada);
         }
         archivoEntrada.close();
@@ -74,7 +78,7 @@ void guardarEntradas(const string& nombreArchivo, const vector<Entrada>& entrada
     ofstream archivoSalida(nombreArchivo, ios::trunc);
     if (archivoSalida.is_open()) {
         for (const auto& entrada : entradas) {
-            archivoSalida << entrada.id << " " << entrada.textoCifrado << "|" << entrada.clave << endl;
+            archivoSalida << entrada.id << " " << entrada.textoCifrado << endl;
         }
         archivoSalida.close();
     }
@@ -95,7 +99,7 @@ void agregarEntrada(vector<Entrada>& entradas, const string& nombreArchivo) {
     string textoCifrado = cifrarVigenere(texto, clave);
     int id = entradas.empty() ? 1 : entradas.back().id + 1;
 
-    Entrada nuevaEntrada = { id, textoCifrado, clave };
+    Entrada nuevaEntrada = { id, textoCifrado };
     entradas.push_back(nuevaEntrada);
     guardarEntradas(nombreArchivo, entradas);
 
@@ -152,7 +156,6 @@ void modificarEntrada(vector<Entrada>& entradas, const string& nombreArchivo) {
             getline(cin, nuevaClave);
 
             entrada.textoCifrado = cifrarVigenere(nuevoTexto, nuevaClave);
-            entrada.clave = nuevaClave;
 
             guardarEntradas(nombreArchivo, entradas);
             cout << "Entrada con ID " << id << " modificada." << endl;
@@ -170,7 +173,11 @@ void descifrarEntrada(const vector<Entrada>& entradas) {
 
     for (const auto& entrada : entradas) {
         if (entrada.id == id) {
-            string textoDescifrado = descifrarVigenere(entrada.textoCifrado, entrada.clave);
+            string clave;
+            cout << "Introduce la clave para descifrar: ";
+            cin.ignore();
+            getline(cin, clave);
+            string textoDescifrado = descifrarVigenere(entrada.textoCifrado, clave);
             cout << "Texto descifrado (ID " << id << "): " << textoDescifrado << endl;
             return;
         }
@@ -232,7 +239,7 @@ int main() {
             menuListar(entradas, nombreArchivo);
             break;
         case 3:
-            cout << "Saliendo del programa. Hasta luego!" << endl;
+            cout << "Saliendo..." << endl;
             break;
         default:
             cout << "Opcion no valida. Intente de nuevo." << endl;
